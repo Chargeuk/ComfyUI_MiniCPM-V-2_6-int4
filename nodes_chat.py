@@ -26,7 +26,7 @@ class MiniCPM_Chat:
             "required": {
                 "text": ("STRING", {"default": "", "multiline": True}),
                 "model": (
-                    ["MiniCPM-V-2_6-int4", "MiniCPM-Llama3-V-2_5-int4"],
+                    ["MiniCPM-V-2_6-int4", "MiniCPM-Llama3-V-2_5-int4", "Vision-8B-MiniCPM-2_5-Uncensored-and-Detailed-4bit"],
                     {"default": "MiniCPM-V-2_6-int4"},
                 ),
                 "keep_model_loaded": ("BOOLEAN", {"default": True}),
@@ -53,7 +53,10 @@ class MiniCPM_Chat:
 
         if seed != -1:
             torch.manual_seed(seed)
-        model_id = f"openbmb/{model}"
+        if model == "Vision-8B-MiniCPM-2_5-Uncensored-and-Detailed-4bit":
+            model_id = "sdasd112132/Vision-8B-MiniCPM-2_5-Uncensored-and-Detailed-4bit"
+        else:
+            model_id = f"openbmb/{model}"
         self.model_checkpoint = os.path.join(
             folder_paths.models_dir, "prompt_generator", os.path.basename(model_id)
         )
