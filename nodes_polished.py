@@ -155,38 +155,44 @@ class MiniCPM_VQA_Polished:
                 attn_implementation="sdpa",
                 torch_dtype=torch.bfloat16 if self.bf16_support else torch.float16,
             )
-
+        # split text by newline
+        texts = text.split("\n")
         with torch.no_grad():
-            if source_video_path:
-                print("source_video_path:", source_video_path)
-                frames = self.encode_video(source_video_path, video_max_num_frames)
-                msgs = [{"role": "user", "content": frames + [text]}]
-            elif source_image_path is not None:
-                images = source_image_path.permute([0, 3, 1, 2])
-                images = [ToPILImage()(img).convert("RGB") for img in images]
-                msgs = [{"role": "user", "content": images + [text]}]
-            else:
-                msgs = [{"role": "user", "content": [text]}]
-                # raise ValueError("Either image or video must be provided")
+            finalResults = []
+            for text in texts:
+                if source_video_path:
+                    print("source_video_path:", source_video_path)
+                    frames = self.encode_video(source_video_path, video_max_num_frames)
+                    msgs = [{"role": "user", "content": frames + [text]}]
+                elif source_image_path is not None:
+                    images = source_image_path.permute([0, 3, 1, 2])
+                    images = [ToPILImage()(img).convert("RGB") for img in images]
+                    msgs = [{"role": "user", "content": images + [text]}]
+                else:
+                    msgs = [{"role": "user", "content": [text]}]
+                    # raise ValueError("Either image or video must be provided")
 
-            params = {"use_image_id": False, "max_slice_nums": video_max_slice_nums}
+                params = {"use_image_id": False, "max_slice_nums": video_max_slice_nums}
 
-            # offload model to CPU
-            # self.model = self.model.to(torch.device("cpu"))
-            # self.model.eval()
+                # offload model to CPU
+                # self.model = self.model.to(torch.device("cpu"))
+                # self.model.eval()
 
-            result = self.model.chat(
-                image=None,
-                msgs=msgs,
-                tokenizer=self.tokenizer,
-                sampling=True,
-                top_k=top_k,
-                top_p=top_p,
-                temperature=temperature,
-                repetition_penalty=repetition_penalty,
-                max_new_tokens=max_new_tokens,
-                **params,
-            )
+                result = self.model.chat(
+                    image=None,
+                    msgs=msgs,
+                    tokenizer=self.tokenizer,
+                    sampling=True,
+                    top_k=top_k,
+                    top_p=top_p,
+                    temperature=temperature,
+                    repetition_penalty=repetition_penalty,
+                    max_new_tokens=max_new_tokens,
+                    **params,
+                )
+                print(result)
+                finalResults.append(result)
+
             # offload model to GPU
             # self.model = self.model.to(torch.device("cpu"))
             # self.model.eval()
@@ -198,4 +204,4 @@ class MiniCPM_VQA_Polished:
                 torch.cuda.empty_cache()  # release GPU memory
                 torch.cuda.ipc_collect()
 
-            return (result,)
+            return (finalResults,)
