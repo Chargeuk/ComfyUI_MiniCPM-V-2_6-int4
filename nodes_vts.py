@@ -27,6 +27,7 @@ class MiniCPM_VQA_Vts:
                 "split_text": ("STRING", {"default": "-----", "multiline": False}),
                 "character_face_text": ("STRING", {"default": "", "multiline": True}),
                 "character_body_text": ("STRING", {"default": "", "multiline": True}),
+                "character_muscle_text": ("STRING", {"default": "", "multiline": True}),
                 "character_face_comma_text": ("STRING", {"default": "", "multiline": True}),
                 "character_comma_text": ("STRING", {"default": "", "multiline": True}),
                 "character_body_tags_text": ("STRING", {"default": "", "multiline": True}),
@@ -96,12 +97,14 @@ class MiniCPM_VQA_Vts:
         "STRING",
         "STRING",
         "STRING",
+        "STRING",
         "STRING"
     )
 
     RETURN_NAMES = (
         "character_face_text",
         "character_body_text",
+        "character_muscle_text",
         "character_face_comma_text",
         "character_comma_text",
         "character_body_tags_text",
@@ -149,6 +152,12 @@ class MiniCPM_VQA_Vts:
         texts = text.split(split_text)
         finalResults = []
         for text in texts:
+            # remove any leading or trailing whitespace
+            text = text.strip()
+            #remove any leading or trailing newline characters
+            text = text.strip("\n")
+            # remove any leading or trailing whitespace
+            text = text.strip()
             if images:
                 msgs = [{"role": "user", "content": images + [text]}]
             else:
@@ -179,69 +188,72 @@ class MiniCPM_VQA_Vts:
 
 
     def filter_values(self, input_string):
-        # Example usage
-        # input_string = "(value_a:0.47), (value_b:0.0), (value_c:1.25)"
-        # filtered_string = filter_values(input_string)
-        # print(filtered_string)  # Output: (value_a:0.47), (value_c:1.25)
-        # Split the input string by commas
-        # Check if the input is a list of strings
-        if isinstance(input_string, list):
-            # Join the list into a single string with comma and space
-            input_string = ', '.join(input_string)
-        
-        # Split the input string by commas
-        value_pairs = input_string.split(', ')
-        
-        # Initialize lists to store the filtered value pairs
-        filtered_values = []
-        zero_or_less_values = []
-        
-        # Iterate through each value pair
-        for pair in value_pairs:
-            # Extract the key and numerical value from the pair
-            key, value = pair.split(':')
-            value = float(value.strip(')'))
-            
-            # Check if the key ends with " arms"
-            if key.strip().endswith(" arms"):
-                # reduce the numerical value
-                value /= 4
+        try:
+            # Check if the input is a list of strings
+            if isinstance(input_string, list):
+                # Join the list into a single string with comma and space
+                input_string = ', '.join(input_string)
 
-            # Check if the key ends with "chinese"
-            if key.strip().endswith("chinese") or key.strip().endswith("japanese") or key.strip().endswith("korean"):
-                # reduce the numerical value
-                value -= 0.2
+            # Remove any ` or ' characters
+            input_string = input_string.replace("`", "").replace("'", "").replace("\r", "").replace("\n", "").strip()
             
-            # Check if the key ends with "abs"
-            if key.strip().endswith("abs"):
-                # increase the numerical value
-                value *= 1.25
-
-            # Round the value to 2 decimal places
-            value = round(value, 2)
-
-            # Check if the value is above 1.5
-            if value > 1.5:
-                value = 1.5
+            # Split the input string by commas
+            value_pairs = input_string.split(', ')
             
-            # Check if the numerical value is greater than zero
-            if value > 0:
-                # If it is, add the pair to the filtered values list
-                filtered_values.append(f"{key}:{value})")
-            else:
-                # Otherwise, add the pair to the zero or less values list
-                zero_or_less_values.append(f"{key}:1.2)")
-        
-        # Join the filtered value pairs back into a comma-separated string
-        filtered_string = ', '.join(filtered_values)
-        filtered_negative_string = ', '.join(zero_or_less_values)
-        return filtered_string, filtered_negative_string
+            # Initialize lists to store the filtered value pairs
+            filtered_values = []
+            zero_or_less_values = []
+            
+            # Iterate through each value pair
+            for pair in value_pairs:
+                # Extract the key and numerical value from the pair
+                key, value = pair.split(':')
+                value = float(value.strip(')'))
+                
+                # Check if the key ends with " arms"
+                if key.strip().endswith(" arms"):
+                    # Reduce the numerical value
+                    value /= 4
+
+                # Check if the key ends with "chinese", "japanese", or "korean"
+                if key.strip().endswith("chinese") or key.strip().endswith("japanese") or key.strip().endswith("korean"):
+                    # Reduce the numerical value
+                    value -= 0.2
+                
+                # Check if the key ends with "abs"
+                if key.strip().endswith("abs"):
+                    # Increase the numerical value
+                    value *= 1.25
+
+                # Round the value to 2 decimal places
+                value = round(value, 2)
+
+                # Check if the value is above 1.5
+                if value > 1.5:
+                    value = 1.5
+                
+                # Check if the numerical value is greater than zero
+                if value > 0:
+                    # If it is, add the pair to the filtered values list
+                    filtered_values.append(f"{key}:{value})")
+                else:
+                    # Otherwise, add the pair to the zero or less values list
+                    zero_or_less_values.append(f"{key}:1.2)")
+            
+            # Join the filtered value pairs back into a comma-separated string
+            filtered_string = ', '.join(filtered_values)
+            filtered_negative_string = ', '.join(zero_or_less_values)
+            return filtered_string, filtered_negative_string
+        except Exception as e:
+            # Return the original input and an empty string in case of an error
+            return input_string, ""
 
     def inference(
         self,
         split_text,
         character_face_text,
         character_body_text,
+        character_muscle_text,
         character_face_comma_text,
         character_comma_text,
         character_body_tags_text,
@@ -309,12 +321,17 @@ class MiniCPM_VQA_Vts:
 
             character_face_text_results = self.calculate_results(character_face_text, split_text, images, video_max_slice_nums, top_p, top_k, temperature, repetition_penalty, max_new_tokens)
             character_body_text_results = self.calculate_results(character_body_text, split_text, images, video_max_slice_nums, top_p, top_k, temperature, repetition_penalty, max_new_tokens)
+            character_muscle_text_results = self.calculate_results(character_muscle_text, split_text, images, video_max_slice_nums, top_p, top_k, temperature, repetition_penalty, max_new_tokens)
             # character_text_results is the character_body_text_results array concatenated to the character_face_text_results array
             character_text_results = character_face_text_results + character_body_text_results
+            character_body_muscle_results = character_body_text_results + character_muscle_text_results
+            character_text_muscle_results = character_face_text_results + character_body_text_results + character_muscle_text_results
             # character_text is the character_text_results array concatenated to a single string with a newline character as the separator and enclosed in ``` characters
             character_text = "```\n" + "\n".join(character_text_results) + "\n```"
+            character_full_text = "```\n" + "\n".join(character_text_muscle_results) + "\n```"
             character_face_text = "```\n" + "\n".join(character_face_text_results) + "\n```"
             character_body_text = "```\n" + "\n".join(character_body_text_results) + "\n```"
+            character_body_muscle_text = "```\n" + "\n".join(character_body_muscle_results) + "\n```"
 
             used_character_face_comma_text = character_comma_text + character_face_text
             character_face_comma_text_results = self.calculate_results(used_character_face_comma_text, split_text, None, video_max_slice_nums, top_p, top_k, temperature, repetition_penalty, max_new_tokens)
@@ -322,10 +339,10 @@ class MiniCPM_VQA_Vts:
             used_character_comma_text = character_face_comma_text + character_text
             character_comma_text_results = self.calculate_results(used_character_comma_text, split_text, None, video_max_slice_nums, top_p, top_k, temperature, repetition_penalty, max_new_tokens)
 
-            used_ethnicity_text = character_ethnicity_tags_text + character_text
+            used_ethnicity_text = character_ethnicity_tags_text + character_full_text
             character_ethnicity_tags_text_results, character_ethnicity_tags_text_neg_results = self.filter_values(self.calculate_results(used_ethnicity_text, split_text, images, video_max_slice_nums, top_p, top_k, temperature, repetition_penalty, max_new_tokens))
 
-            used_body_tags_text = character_body_tags_text + character_body_text
+            used_body_tags_text = character_body_tags_text + character_body_muscle_text
             character_body_tags_text_results, character_body_tags_text_neg_results = self.filter_values(self.calculate_results(used_body_tags_text, split_text, images, video_max_slice_nums, top_p, top_k, temperature, repetition_penalty, max_new_tokens))
 
             environment_text_results = self.calculate_results(environment_text, split_text, images, video_max_slice_nums, top_p, top_k, temperature, repetition_penalty, max_new_tokens)
@@ -348,6 +365,7 @@ class MiniCPM_VQA_Vts:
             return (
                 character_face_text_results,
                 character_body_text_results,
+                character_muscle_text_results,
                 character_face_comma_text_results,
                 character_comma_text_results,
                 character_body_tags_text_results,
