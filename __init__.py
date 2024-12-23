@@ -1,6 +1,7 @@
 from .nodes_legacy import MiniCPM_VQA
 from .nodes_chat import MiniCPM_Chat
 from .nodes_polished import MiniCPM_VQA_Polished
+from .nodes_vts import MiniCPM_VQA_Vts
 from .image_nodes import MultipleImagesInput
 from .util_nodes import LoadVideo,PreviewVideo
 from .display_text_nodes import DisplayText
@@ -13,6 +14,7 @@ NODE_CLASS_MAPPINGS = {
     "MultipleImagesInput": MultipleImagesInput,
     "MiniCPM_VQA": MiniCPM_VQA,
     "MiniCPM_VQA_Polished": MiniCPM_VQA_Polished,
+    "MiniCPM_VQA_Vts": MiniCPM_VQA_Vts,
     "DisplayText": DisplayText,
     "MiniCPM_Chat": MiniCPM_Chat,
 }
@@ -24,6 +26,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "MultipleImagesInput": "Multiple Images Input",
     "MiniCPM_VQA": "MiniCPM VQA",
     "MiniCPM_VQA_Polished": "MiniCPM VQA Polished",
+    "MiniCPM_VQA_Vts": "MiniCPM VQA Vts",
     "DisplayText": "Display Text",
     "MiniCPM_Chat": "MiniCPM Chat",
 }
