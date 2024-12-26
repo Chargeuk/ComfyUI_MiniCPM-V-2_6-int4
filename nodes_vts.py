@@ -3,7 +3,7 @@ import torch
 import folder_paths
 from transformers import AutoTokenizer, AutoModel
 from torchvision.transforms.v2 import ToPILImage
-from decord import VideoReader, cpu  # pip install decord
+import cv2  # pip install opencv-python
 from PIL import Image
 
 
@@ -123,23 +123,28 @@ class MiniCPM_VQA_Vts:
             idxs = [int(i * gap + gap / 2) for i in range(n)]
             return [l[i] for i in idxs]
 
-        vr = VideoReader(source_video_path, ctx=cpu(0))
-        total_frames = len(vr) + 1
+        cap = cv2.VideoCapture(source_video_path)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         print("Total frames:", total_frames)
-        avg_fps = vr.get_avg_fps()
+        avg_fps = cap.get(cv2.CAP_PROP_FPS)
         print("Get average FPS(frame per second):", avg_fps)
         sample_fps = round(avg_fps / 1)  # FPS
-        duration = len(vr) / avg_fps
+        duration = total_frames / avg_fps
         print("Total duration:", duration, "seconds")
-        width = vr[0].shape[1]
-        height = vr[0].shape[0]
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         print("Video resolution(width x height):", width, "x", height)
 
-        frame_idx = [i for i in range(0, len(vr), sample_fps)]
+        frame_idx = [i for i in range(0, total_frames, sample_fps)]
         if len(frame_idx) > MAX_NUM_FRAMES:
             frame_idx = uniform_sample(frame_idx, MAX_NUM_FRAMES)
-        frames = vr.get_batch(frame_idx).asnumpy()
-        frames = [Image.fromarray(v.astype("uint8")) for v in frames]
+        frames = []
+        for idx in frame_idx:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+            ret, frame = cap.read()
+            if ret:
+                frames.append(Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)))
+        cap.release()
         print("num frames:", len(frames))
         return frames
 

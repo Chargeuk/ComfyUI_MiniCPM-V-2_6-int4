@@ -5,6 +5,6 @@ numpy
 pillow
 huggingface_hub
 transformers
-decord
+opencv-python
 bitsandbytes
 accelerate
