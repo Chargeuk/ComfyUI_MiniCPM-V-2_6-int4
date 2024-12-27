@@ -25,7 +25,7 @@ class MiniCPM_Chat:
             "required": {
                 "text": ("STRING", {"default": "", "multiline": True}),
                 "model": (
-                    ["MiniCPM-V-2_6-int4", "MiniCPM-Llama3-V-2_5-int4", "Vision-8B-MiniCPM-2_5-Uncensored-and-Detailed-4bit"],
+                    ["MiniCPM-V-2_6-int4", "MiniCPM-Llama3-V-2_5-int4", "Vision-8B-MiniCPM-2_5-Uncensored-and-Detailed-4bit", "MiniCPM-V-2_6"],
                     {"default": "MiniCPM-V-2_6-int4"},
                 ),
                 "keep_model_loaded": ("BOOLEAN", {"default": True}),

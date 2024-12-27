@@ -19,6 +19,7 @@ class MiniCPM_VQA_Vts:
             torch.cuda.is_available()
             and torch.cuda.get_device_capability(self.device)[0] >= 8
         )
+        self.hasCuda = torch.cuda.is_available()
 
     @classmethod
     def INPUT_TYPES(s):
@@ -35,7 +36,7 @@ class MiniCPM_VQA_Vts:
                 "environment_text": ("STRING", {"default": "", "multiline": True}),
                 "environment_comma_text": ("STRING", {"default": "", "multiline": True}),
                 "model": (
-                    ["MiniCPM-V-2_6-int4", "MiniCPM-Llama3-V-2_5-int4", "Vision-8B-MiniCPM-2_5-Uncensored-and-Detailed-4bit"],
+                    ["MiniCPM-V-2_6-int4", "MiniCPM-Llama3-V-2_5-int4", "Vision-8B-MiniCPM-2_5-Uncensored-and-Detailed-4bit", "MiniCPM-V-2_6"],
                     {"default": "MiniCPM-V-2_6-int4"},
                 ),
                 "keep_model_loaded": ("BOOLEAN", {"default": False}),
@@ -309,9 +310,9 @@ class MiniCPM_VQA_Vts:
             self.model = AutoModel.from_pretrained(
                 self.model_checkpoint,
                 trust_remote_code=True,
-                low_cpu_mem_usage=True,
-                attn_implementation="sdpa",
-                torch_dtype=torch.bfloat16 if self.bf16_support else torch.float16,
+                #low_cpu_mem_usage=True,
+                #attn_implementation="sdpa",
+                #torch_dtype=torch.bfloat16 if self.bf16_support else torch.float16,
             )
 
         with torch.no_grad():
@@ -360,12 +361,18 @@ class MiniCPM_VQA_Vts:
             # self.model = self.model.to(torch.device("cpu"))
             # self.model.eval()
             if not keep_model_loaded:
-                del self.tokenizer  # release tokenizer memory
-                del self.model  # release model memory
-                self.tokenizer = None  # set tokenizer to None
-                self.model = None  # set model to None
-                torch.cuda.empty_cache()  # release GPU memory
-                torch.cuda.ipc_collect()
+                try:
+                    del self.tokenizer  # release tokenizer memory
+                    del self.model  # release model memory
+                    self.tokenizer = None  # set tokenizer to None
+                    self.model = None  # set model to None
+                    if self.hasCuda:
+                        torch.cuda.empty_cache()  # release GPU memory
+                        torch.cuda.ipc_collect()
+                    else:
+                        gc.collect()  # force garbage collection on CPU
+                except Exception as e:
+                    print(e)
 
             return (
                 character_face_text_results,
